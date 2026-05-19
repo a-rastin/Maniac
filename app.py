@@ -3,7 +3,8 @@ Maniac - Music Player Web App (Python + Flask)
 
 A single-file Flask application that serves a browser-based music player on
 localhost. Supports MP3 uploads, search by title/artist, a most-played list,
-shuffle mode, a Stop button, and a Next-song button.
+shuffle mode, repeat mode, a Stop button, a Next-song button, and a
+dark/light theme toggle in the lower-left corner.
 
 Run with:
 
@@ -206,30 +207,105 @@ INDEX_HTML = r"""<!DOCTYPE html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Maniac</title>
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem("maniac-theme");
+      if (saved === "light" || saved === "dark") {
+        document.documentElement.setAttribute("data-theme", saved);
+      }
+    } catch (_) { /* localStorage unavailable; fall back to default */ }
+  })();
+</script>
 <style>
+  :root {
+    --bg: #0b0b11;
+    --surface: #14141d;
+    --surface-elev: #1c1c28;
+    --surface-elev-hover: #232333;
+    --surface-hover: #191923;
+    --upload-hover: #1f1f2e;
+    --border-soft: #232330;
+    --border: #2a2a3a;
+    --border-strong: #3a3a55;
+    --tab-active: #2a2a3d;
+    --text: #e8e8ec;
+    --text-bright: #d8d8df;
+    --text-muted: #9999a8;
+    --text-label: #8a8a99;
+    --text-faint: #6a6a78;
+    --text-dim: #5d5d6d;
+    --text-empty: #5a5a68;
+    --text-on-accent: #ffffff;
+    --accent-1: #a78bfa;
+    --accent-2: #ec4899;
+    --accent-1-glow: rgba(167, 139, 250, 0.18);
+    --active-grad-1: rgba(167, 139, 250, 0.16);
+    --active-grad-2: rgba(236, 72, 153, 0.10);
+    --active-border: rgba(167, 139, 250, 0.55);
+    --status-info: #93c5fd;
+    --status-success: #86efac;
+    --status-error: #fca5a5;
+    --audio-filter: invert(0.9) hue-rotate(180deg);
+    --tab-active-shadow: none;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --surface-elev: #eceef3;
+    --surface-elev-hover: #dfe1e8;
+    --surface-hover: #f1f2f6;
+    --upload-hover: #f7f8fb;
+    --border-soft: #e6e7ed;
+    --border: #d9dae2;
+    --border-strong: #b9bac6;
+    --tab-active: #ffffff;
+    --text: #1d1d22;
+    --text-bright: #0b0b11;
+    --text-muted: #686877;
+    --text-label: #686877;
+    --text-faint: #9c9ca6;
+    --text-dim: #9c9ca6;
+    --text-empty: #b3b5c0;
+    --text-on-accent: #ffffff;
+    --accent-1: #7c3aed;
+    --accent-2: #db2777;
+    --accent-1-glow: rgba(124, 58, 237, 0.18);
+    --active-grad-1: rgba(124, 58, 237, 0.10);
+    --active-grad-2: rgba(219, 39, 119, 0.06);
+    --active-border: rgba(124, 58, 237, 0.45);
+    --status-info: #2563eb;
+    --status-success: #15803d;
+    --status-error: #b91c1c;
+    --audio-filter: none;
+    --tab-active-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                  Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-    background: #0b0b11;
-    color: #e8e8ec;
+    background: var(--bg);
+    color: var(--text);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    transition: background-color 0.2s, color 0.2s;
   }
   .app { display: flex; flex: 1; min-height: 0; }
 
   /* Sidebar */
   .sidebar {
     width: 320px;
-    background: #14141d;
+    background: var(--surface);
     padding: 24px 22px;
     display: flex;
     flex-direction: column;
     gap: 22px;
-    border-right: 1px solid #232330;
+    border-right: 1px solid var(--border-soft);
     overflow-y: auto;
   }
   .brand {
@@ -237,7 +313,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     font-size: 22px;
     font-weight: 700;
     letter-spacing: -0.01em;
-    background: linear-gradient(135deg, #a78bfa, #ec4899);
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -246,52 +322,52 @@ INDEX_HTML = r"""<!DOCTYPE html>
   .section .label {
     font-size: 11px;
     font-weight: 700;
-    color: #8a8a99;
+    color: var(--text-label);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
   .upload-box {
     position: relative;
-    background: #1c1c28;
-    border: 1px dashed #3a3a55;
+    background: var(--surface-elev);
+    border: 1px dashed var(--border-strong);
     border-radius: 10px;
     padding: 14px;
     text-align: center;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
   }
-  .upload-box:hover { border-color: #a78bfa; background: #1f1f2e; }
+  .upload-box:hover { border-color: var(--accent-1); background: var(--upload-hover); }
   .upload-box input[type=file] {
     position: absolute; inset: 0; opacity: 0; cursor: pointer;
   }
-  .upload-box .hint { color: #9999a8; font-size: 13px; }
-  .upload-box .sub { color: #5d5d6d; font-size: 11px; margin-top: 4px; }
+  .upload-box .hint { color: var(--text-muted); font-size: 13px; }
+  .upload-box .sub { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
 
   .status { font-size: 12px; min-height: 16px; }
-  .status.info { color: #93c5fd; }
-  .status.success { color: #86efac; }
-  .status.error { color: #fca5a5; }
+  .status.info { color: var(--status-info); }
+  .status.success { color: var(--status-success); }
+  .status.error { color: var(--status-error); }
 
   input[type=text], input.search {
     width: 100%;
-    background: #1c1c28;
-    border: 1px solid #2a2a3a;
+    background: var(--surface-elev);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 11px 12px;
-    color: #e8e8ec;
+    color: var(--text);
     font-size: 14px;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   input.search:focus {
     outline: none;
-    border-color: #a78bfa;
-    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+    border-color: var(--accent-1);
+    box-shadow: 0 0 0 3px var(--accent-1-glow);
   }
 
   .tabs {
     display: flex;
     gap: 4px;
-    background: #1c1c28;
+    background: var(--surface-elev);
     border-radius: 10px;
     padding: 4px;
   }
@@ -299,7 +375,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     flex: 1;
     background: transparent;
     border: none;
-    color: #9999a8;
+    color: var(--text-muted);
     padding: 8px 10px;
     border-radius: 7px;
     cursor: pointer;
@@ -307,13 +383,17 @@ INDEX_HTML = r"""<!DOCTYPE html>
     font-size: 13px;
     transition: background 0.15s, color 0.15s;
   }
-  .tab:hover { color: #d8d8df; }
-  .tab.active { background: #2a2a3d; color: #fff; }
+  .tab:hover { color: var(--text-bright); }
+  .tab.active {
+    background: var(--tab-active);
+    color: var(--text-bright);
+    box-shadow: var(--tab-active-shadow);
+  }
 
   .toggle {
-    background: #1c1c28;
-    border: 1px solid #2a2a3a;
-    color: #d8d8df;
+    background: var(--surface-elev);
+    border: 1px solid var(--border);
+    color: var(--text-bright);
     padding: 11px 14px;
     border-radius: 10px;
     cursor: pointer;
@@ -322,11 +402,11 @@ INDEX_HTML = r"""<!DOCTYPE html>
     transition: background 0.15s, border-color 0.15s, color 0.15s;
     text-align: left;
   }
-  .toggle:hover { border-color: #3a3a55; }
+  .toggle:hover { border-color: var(--border-strong); }
   .toggle.on {
-    background: linear-gradient(135deg, #a78bfa, #ec4899);
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
     border-color: transparent;
-    color: #fff;
+    color: var(--text-on-accent);
   }
 
   /* Content */
@@ -335,7 +415,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     margin: 0 0 16px 0;
     font-size: 18px;
     font-weight: 600;
-    color: #d8d8df;
+    color: var(--text-bright);
   }
   .song-list { display: flex; flex-direction: column; gap: 6px; }
   .song {
@@ -343,27 +423,27 @@ INDEX_HTML = r"""<!DOCTYPE html>
     align-items: center;
     gap: 14px;
     padding: 12px 16px;
-    background: #14141d;
+    background: var(--surface);
     border-radius: 11px;
     cursor: pointer;
     border: 1px solid transparent;
     transition: background 0.15s, border-color 0.15s, transform 0.05s;
   }
-  .song:hover { background: #191923; border-color: #2a2a3a; }
+  .song:hover { background: var(--surface-hover); border-color: var(--border); }
   .song:active { transform: translateY(1px); }
   .song.active {
     background: linear-gradient(135deg,
-                  rgba(167, 139, 250, 0.16),
-                  rgba(236, 72, 153, 0.10));
-    border-color: rgba(167, 139, 250, 0.55);
+                  var(--active-grad-1),
+                  var(--active-grad-2));
+    border-color: var(--active-border);
   }
   .song .num {
     width: 28px;
-    color: #6a6a78;
+    color: var(--text-faint);
     font-variant-numeric: tabular-nums;
     text-align: right;
   }
-  .song.active .num { color: #a78bfa; }
+  .song.active .num { color: var(--accent-1); }
   .song .info { flex: 1; min-width: 0; }
   .song .title {
     font-weight: 600;
@@ -373,24 +453,24 @@ INDEX_HTML = r"""<!DOCTYPE html>
     white-space: nowrap;
   }
   .song .artist {
-    color: #9999a8;
+    color: var(--text-muted);
     font-size: 13px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .song .count {
-    color: #8a8a99;
+    color: var(--text-label);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
-    background: #1c1c28;
+    background: var(--surface-elev);
     padding: 4px 8px;
     border-radius: 999px;
   }
-  .song.active .count { color: #d8d8df; }
+  .song.active .count { color: var(--text-bright); }
 
   .empty {
-    color: #5a5a68;
+    color: var(--text-empty);
     text-align: center;
     padding: 60px 20px;
     font-size: 14px;
@@ -398,8 +478,8 @@ INDEX_HTML = r"""<!DOCTYPE html>
 
   /* Player bar */
   .player-bar {
-    background: #14141d;
-    border-top: 1px solid #232330;
+    background: var(--surface);
+    border-top: 1px solid var(--border-soft);
     padding: 14px 22px;
     display: flex;
     align-items: center;
@@ -414,7 +494,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     white-space: nowrap;
   }
   .now-playing .np-artist {
-    color: #9999a8;
+    color: var(--text-muted);
     font-size: 12px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -424,12 +504,12 @@ INDEX_HTML = r"""<!DOCTYPE html>
     flex: 1;
     min-width: 0;
     height: 38px;
-    filter: invert(0.9) hue-rotate(180deg);
+    filter: var(--audio-filter);
   }
   .pb-btn {
-    background: #1c1c28;
-    border: 1px solid #2a2a3a;
-    color: #e8e8ec;
+    background: var(--surface-elev);
+    border: 1px solid var(--border);
+    color: var(--text);
     padding: 10px 16px;
     border-radius: 9px;
     cursor: pointer;
@@ -438,18 +518,45 @@ INDEX_HTML = r"""<!DOCTYPE html>
     min-width: 76px;
     transition: background 0.15s, border-color 0.15s, transform 0.05s;
   }
-  .pb-btn:hover { background: #232333; border-color: #3a3a55; }
+  .pb-btn:hover { background: var(--surface-elev-hover); border-color: var(--border-strong); }
   .pb-btn:active { transform: translateY(1px); }
   .pb-btn.primary {
-    background: linear-gradient(135deg, #a78bfa, #ec4899);
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
     border-color: transparent;
-    color: #fff;
+    color: var(--text-on-accent);
   }
   .pb-btn.primary:hover { filter: brightness(1.06); }
 
+  /* Theme toggle (anchored to the lower-left corner of the app) */
+  .theme-toggle {
+    background: var(--surface-elev);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s, transform 0.05s, color 0.15s;
+  }
+  .theme-toggle:hover {
+    background: var(--surface-elev-hover);
+    border-color: var(--border-strong);
+    color: var(--accent-1);
+  }
+  .theme-toggle:active { transform: translateY(1px); }
+  .theme-toggle svg { width: 18px; height: 18px; display: block; }
+  .theme-toggle .icon-sun { display: block; }
+  .theme-toggle .icon-moon { display: none; }
+  :root[data-theme="light"] .theme-toggle .icon-sun { display: none; }
+  :root[data-theme="light"] .theme-toggle .icon-moon { display: block; }
+
   ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 999px; }
-  ::-webkit-scrollbar-thumb:hover { background: #3a3a55; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
   ::-webkit-scrollbar-track { background: transparent; }
 </style>
 </head>
@@ -485,6 +592,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
       <div class="section">
         <div class="label">Playback</div>
         <button class="toggle" id="shuffle-toggle">Shuffle: Off</button>
+        <button class="toggle" id="repeat-toggle">Repeat: Off</button>
       </div>
     </aside>
 
@@ -495,6 +603,20 @@ INDEX_HTML = r"""<!DOCTYPE html>
   </div>
 
   <footer class="player-bar">
+    <button class="theme-toggle" id="theme-toggle"
+            title="Toggle light/dark theme" aria-label="Toggle theme">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           aria-hidden="true">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
     <div class="now-playing">
       <div class="np-title" id="np-title">Nothing playing</div>
       <div class="np-artist" id="np-artist">Pick a song from the list</div>
@@ -510,6 +632,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     songs: [],
     currentId: null,
     shuffle: false,
+    repeat: false,
     sort: "recent",
     query: "",
     playCounted: false,
@@ -525,9 +648,12 @@ INDEX_HTML = r"""<!DOCTYPE html>
   const uploadInput = $("upload");
   const uploadStatus = $("upload-status");
   const shuffleToggle = $("shuffle-toggle");
+  const repeatToggle = $("repeat-toggle");
+  const themeToggle = $("theme-toggle");
   const btnStop = $("btn-stop");
   const btnNext = $("btn-next");
   const tabs = document.querySelectorAll(".tab");
+  const root = document.documentElement;
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
@@ -626,7 +752,15 @@ INDEX_HTML = r"""<!DOCTYPE html>
       .catch(() => {});
   });
 
-  audio.addEventListener("ended", nextSong);
+  audio.addEventListener("ended", () => {
+    if (state.repeat && state.currentId != null) {
+      try { audio.currentTime = 0; } catch (_) { /* no source yet */ }
+      state.playCounted = false;
+      audio.play().catch(() => {});
+      return;
+    }
+    nextSong();
+  });
 
   btnNext.addEventListener("click", nextSong);
   btnStop.addEventListener("click", stopSong);
@@ -636,6 +770,28 @@ INDEX_HTML = r"""<!DOCTYPE html>
     shuffleToggle.textContent =
       "Shuffle: " + (state.shuffle ? "On" : "Off");
     shuffleToggle.classList.toggle("on", state.shuffle);
+  });
+
+  repeatToggle.addEventListener("click", () => {
+    state.repeat = !state.repeat;
+    repeatToggle.textContent =
+      "Repeat: " + (state.repeat ? "On" : "Off");
+    repeatToggle.classList.toggle("on", state.repeat);
+  });
+
+  function currentTheme() {
+    return root.getAttribute("data-theme") === "light" ? "light" : "dark";
+  }
+  function applyTheme(theme) {
+    if (theme === "light") {
+      root.setAttribute("data-theme", "light");
+    } else {
+      root.removeAttribute("data-theme");
+    }
+    try { localStorage.setItem("maniac-theme", theme); } catch (_) {}
+  }
+  themeToggle.addEventListener("click", () => {
+    applyTheme(currentTheme() === "light" ? "dark" : "light");
   });
 
   let searchTimer;
