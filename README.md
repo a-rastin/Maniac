@@ -81,7 +81,7 @@ Maniac follows a three-tier pattern adapted for local deployment:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/<username>/maniac.git
+   git clone https://github.com/a-rastin/maniac.git
    cd maniac
    ```
 
@@ -247,10 +247,8 @@ If you use or reference this project in academic work, please cite the repositor
 ```bibtex
 @software{maniac2026,
   title   = {Maniac: A Lightweight Browser-Based Music Player},
-  author  = {Your Name},
+  author  = {Amirali Hatami},
   year    = {2026},
-  url     = {https://github.com/<username>/maniac}
+  url     = {https://github.com/a-rastin/maniac}
 }
 ```
-
-Replace `<username>` and author details with your own information before publication.
