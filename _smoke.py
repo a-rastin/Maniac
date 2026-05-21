@@ -23,3 +23,4 @@ for name, ok in checks:
     print(f"  [{tag}] {name}")
 print()
 print("ALL CHECKS PASSED" if all(ok for _, ok in checks) else "SOME CHECKS FAILED")
+
